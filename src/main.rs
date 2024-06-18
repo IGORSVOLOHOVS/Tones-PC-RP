@@ -1,173 +1,90 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use serde_with::{serde_as, DeserializeAs, SerializeAs}; 
-use std::fs;
-use reqwest;
-use serde_json::to_string;
+use serialport::{SerialPort, DataBits, StopBits, FlowControl};
+use std::time::Duration;
+use std::io::{BufRead, BufReader, Write};
+use generator::Gn;
+use std::thread::sleep;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct LiquidType {
-    id: i32,
-    name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Liquid {
-    #[serde(rename = "type")] // Handle renaming
-    liquid_type: LiquidType,
-    id: i32,
-    name: String,
-    usedCold: bool,
-    toxic: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct TemperatureChangeParams {
-    source: i32,
-    target: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct WashingParams {
-    liquid: Liquid,
-    iters: i32,
-    incubation: i32,
-    temperature: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct LiquidApplicationParams {
-    autoWash: bool,
-    liquid: Liquid,
-    incubation: i32,
-    temperature: i32,
-}
-
-// Using an enum for flexibility with different step types
-#[derive(Serialize, Deserialize, Debug)]
-enum StepParams {
-    Other(serde_json::Value), // Catch-all for unknown variants
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Step {
-    #[serde(rename = "type")]
-    step_type: String,
-    id: i32,
-    params: serde_json::Value,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct DefaultWash {
-    iters: i32,
-    incubation: i32,
-    liquid: Liquid,
-    temperature: Option<i32>, // Temperature can be null
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Protocol {
-    id: i32,
-    name: String,
-    customLiquids: Vec<Liquid>,
-    description: String,
-    steps: Vec<Step>,
-    creationDate: String,
-    defaultWash: DefaultWash,
-    author: Option<String>,
-}
-
-struct ProtocolManager{
-    protocol_id: i32,
-    step_id: i32,
-    status: String,
-
-    url: String,
-    client: reqwest::blocking::Client,
-    msg: serde_json::Value,
-}
-
-impl ProtocolManager {
-    fn new(url: &str) -> Self {
-        ProtocolManager {
-            protocol_id: -1,
-            step_id: -1,
-            status: "OK".to_string(),
-            url: url.to_string(),
-            client: reqwest::blocking::Client::new(),
-            msg: serde_json::json!({
-                "protocol_id": -1,
-                "step_id": -1,
-                "status": "OK" // ERROR or OK
-            }),
+// Function to report step status using a generator (unchanged)
+fn report_step_status(step_name: &str) -> Gn<String> {
+    Gn::new_scoped(|mut co| {
+        co.yield_(format!("{} - Processing", step_name));
+        sleep(Duration::from_secs(2)); // Simulate processing
+        match step_name {
+            "Step 3" => co.yield_(format!("{} - Error", step_name)), // Simulated error
+            _ => co.yield_(format!("{} - OK", step_name)),
         }
-    }
-
-    fn run(&mut self) {
-        let protocols = self.get_protocols().unwrap();
-        for protocol in protocols.iter() {
-            self.protocol_id = protocol.id;
-            for step in protocol.steps.iter() {
-                self.step_id = step.id;
-                match step.step_type.as_str() {
-                    "Temperature Change" => {                    
-                        // Get the params
-                        let params = serde_json::from_value::<TemperatureChangeParams>(step.params.clone()).unwrap();
-                        // Do something with the params
-                        // Send state
-                        self.log(protocol.id, step.id, "OK");
-                    },
-                    "Washing" => {
-                        // Get the params
-                        let params = serde_json::from_value::<WashingParams>(step.params.clone()).unwrap();
-                        // Do something with the params
-                        // Send state
-                        self.log(protocol.id, step.id, "OK");
-                    },
-                    "Liquid Application" => {
-                        // Get the params
-                        let params = serde_json::from_value::<LiquidApplicationParams>(step.params.clone()).unwrap();
-                        // Do something with the params
-                        // Send state
-                        self.log(protocol.id, step.id, "OK");
-                    },
-                    _ => {
-                        self.log(protocol.id, step.id, "ERROR: Unknown step type!");
-                    }
-                }
-            }
-        }
-
-    }
-
-    fn log(&mut self, protocol_id: i32, step_id: i32, status: &str) {
-        self.msg["protocol_id"] = Value::from(protocol_id);
-        self.msg["step_id"] = Value::from(step_id);
-        self.msg["status"] = Value::from(status);
-
-        let json_str = to_string(&self.msg).unwrap();
-
-        let res = self.client.post(&self.url)
-            .body(json_str)
-            .header(reqwest::header::CONTENT_TYPE, "application/json")
-            .send()
-            .unwrap();
-    }
-
-    fn get_protocols(&mut self) -> Result<Vec<Protocol>, reqwest::Error> {
-        let mut protocols: Vec<Protocol> = {  // serialize data into struct
-            let res = fs::read_to_string("test.json").expect("Can't read file");
-            serde_json::from_str::<Vec<Protocol>>(&res).unwrap()
-        };
-        Ok(protocols)
-    }
+    })
 }
 
 fn main() {
-    
-    // Create a logger instance
-    let mut manager = ProtocolManager::new("http://127.0.0.1:5000");
-    
-    // Run the manager
-    manager.run();
+    let port_name = "/dev/ttyUSB0"; // Or your actual serial port
+    let baud_rate = 9600;
+    let data_bits = DataBits::Eight;
+    let stop_bits = StopBits::One;
+    let flow_control = FlowControl::None;
+
+    // Open the serial port
+    let mut port = serialport::open_with_settings(
+        &port_name, 
+        &serialport::SerialPortSettings {
+            baud_rate,
+            data_bits,
+            stop_bits,
+            flow_control,
+            timeout: Duration::from_millis(1000), // Adjust timeout as needed
+        }
+    ).expect("Failed to open serial port");
+
+    let mut reader = BufReader::new(&mut port);
+    let mut buffer = String::new();
+
+    loop {
+        // ... (Reading commands from the serial port) ...
+
+        match command_str {
+            command if command.starts_with("W_") => {
+                let mut step_generator = report_step_status("Waiting Command");
+                waiting_command(command[2..].parse::<u64>().unwrap(), &mut port, &mut step_generator);
+            },
+            command if command.starts_with("BTC_") => {
+                let mut step_generator = report_step_status("Blocking Temp Change");
+                blocking_temperature_change(command[4..].parse::<f32>().unwrap(), &mut port, &mut step_generator);
+            },
+            command if command.starts_with("TC_") => {
+                let mut step_generator = report_step_status("Non-Blocking Temp Change");
+                nonblocking_temperature_change(command[3..].parse::<f32>().unwrap(), &mut port, &mut step_generator);
+            },
+            command if command.starts_with("LA_") => {
+                let parts: Vec<&str> = command[3..].split('_').collect();
+                let from = parts[0].parse::<u32>().unwrap();
+                let to = parts[1].parse::<u32>().unwrap();
+                let volume_ml = parts[2].parse::<u32>().unwrap();
+
+                let mut step_generator = report_step_status("Liquid Application");
+                liquid_application(from, to, volume_ml, &mut port, &mut step_generator);
+            },
+            _ => println!("Unknown command: {}", command_str)
+        }
+        buffer.clear();
+    }
 }
+
+// ... (Command handling functions with generator integration) ...
+
+fn waiting_command(time_ms: u64, port: &mut Box<dyn SerialPort>, step_generator: &mut Gn<String>) {
+    // ... (Your waiting command logic) ...
+    loop {
+        if let Some(status) = step_generator.resume() {
+            if let Err(e) = port.write_all(status.as_bytes()) {
+                eprintln!("Error writing to serial port: {:?}", e);
+            }
+            if status.contains("Error") || status.contains("OK") {
+                break;
+            }
+        } else {
+            break; 
+        }
+    }
+}
+
+// ... (Similar implementations for blocking_temperature_change, nonblocking_temperature_change, and liquid_application) ...
