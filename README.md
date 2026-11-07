@@ -55,3 +55,7 @@ gates. `.\recipe.ps1 info` prints the metadata. The other verbs print
 
 There is none, deliberately. Ownership of the Tones work is not settled, so the
 absence of a licence file means default copyright, all rights reserved, until it is.
+
+## Lab requirements
+
+This repository complies with [revision 4.0.0](http://127.0.0.1:3000/igors-lab/software-requirements/src/tag/v4.0.0/BEST_REQUIREMENTS.md) of the lab requirements, except R-02 (#7), R-09 (#8), R-13 (#9), R-18 (#10), R-37 (#11), R-41 (#12), R-42 (#13).
