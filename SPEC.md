@@ -12,6 +12,29 @@ functions (`src/main.rs:51,55,64`). This is inferred from the source. No Rust
 toolchain was available to confirm it. FR-1 to FR-11 below therefore describe
 the behaviour the source specifies, none of which has been observed running.
 
+<!-- jira-sync:start -->
+Jira: KAN-88
+
+## Tasks
+
+This list is one ticket in Jira project KAN, [KAN-88](https://igorsvolohovs.atlassian.net/browse/KAN-88). Each line is a checkbox there: tick it in Jira and the sync ticks it here; add a checkbox there and it is appended here. Done items are the features described in section 3; open items are what the project declares but the code does not do yet.
+
+- [x] Serial link (section 3) <!-- spec-serial-link -->
+- [x] Command dispatch (section 3) <!-- spec-command-dispatch -->
+- [x] Step status reporting (section 3) <!-- spec-step-status-reporting -->
+- [x] HTTP listener (section 3) <!-- spec-http-listener -->
+- [ ] D-1 (declared, not implemented) <!-- spec-d-1-841273e6e5 -->
+- [ ] D-2 (declared, not implemented) <!-- spec-d-2-05c019814e -->
+- [ ] D-3 (declared, not implemented) <!-- spec-d-3-bce8c62d34 -->
+- [ ] D-4 (declared, not implemented) <!-- spec-d-4-d8af4f1c27 -->
+- [ ] D-5 (declared, not implemented) <!-- spec-d-5-d4570d50d5 -->
+- [ ] D-6 (declared, not implemented) <!-- spec-d-6-08e3082394 -->
+- [ ] D-7 (declared, not implemented) <!-- spec-d-7-cf2e6697bb -->
+- [ ] D-8 (declared, not implemented) <!-- spec-d-8-e828a6e422 -->
+- [ ] D-9 (declared, not implemented) <!-- spec-d-9-b02203f6ea -->
+
+<!-- jira-sync:end -->
+
 ## 1. Purpose and scope
 
 In scope:
